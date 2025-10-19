@@ -1,0 +1,15 @@
+{
+  "name": "performative-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Webcam-based performative checker using TF.js COCO-SSD",
+  "scripts": {
+    "start": "node server.js",
+    "start:port": "PORT=8081 node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
+

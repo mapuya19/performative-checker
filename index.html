@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Performative Checker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="banner" id="banner" aria-live="polite" aria-atomic="true">
+      <div class="banner__text" id="bannerText">Non‑performative</div>
+    </header>
+
+    <main class="container">
+      <section class="camera">
+        <div class="video-wrap">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="overlay" class="overlay" aria-hidden="true"></canvas>
+        </div>
+        <div class="controls">
+          <button id="startBtn" class="btn">Start camera</button>
+          <button id="stopBtn" class="btn btn--ghost" disabled>Stop</button>
+          <button id="switchCameraBtn" class="btn btn--ghost" title="Switch front/rear">Switch camera</button>
+          <button id="toggleBoxesBtn" class="btn btn--ghost" title="Toggle detection boxes">Boxes: Off</button>
+        </div>
+        <p class="hint">We only process video locally in your browser. No data leaves your device.</p>
+      </section>
+
+      <section class="settings" aria-labelledby="settingsTitle">
+        <div class="settings__header">
+          <h2 id="settingsTitle">Detection settings</h2>
+          <button id="toggleSettings" class="btn btn--ghost" aria-expanded="true" aria-controls="settingsBody">Hide</button>
+        </div>
+        <div id="settingsBody" class="settings__body">
+          <div class="grid">
+            <label class="field">
+              <span class="field__label">Enter threshold</span>
+              <input id="enterThreshold" type="range" min="0.1" max="0.9" step="0.01" />
+              <span class="field__value" id="enterThresholdValue"></span>
+            </label>
+            <label class="field">
+              <span class="field__label">Exit threshold</span>
+              <input id="exitThreshold" type="range" min="0.1" max="0.9" step="0.01" />
+              <span class="field__value" id="exitThresholdValue"></span>
+            </label>
+            <label class="field">
+              <span class="field__label">Frames to enter</span>
+              <input id="framesEnter" type="number" min="1" max="30" />
+            </label>
+            <label class="field">
+              <span class="field__label">Frames to exit</span>
+              <input id="framesExit" type="number" min="1" max="60" />
+            </label>
+          </div>
+          <div class="settings__actions">
+            <button id="resetSettings" class="btn">Reset defaults</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- TFJS + COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+  </html>
+
+
