@@ -16,7 +16,7 @@
   let isPerformativeState = false;
   let consecutiveDrinkFrames = 0;
   let consecutiveNoDrinkFrames = 0;
-  let currentFacingMode = 'environment'; // prefer rear camera on mobile
+  let currentFacingMode = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'user' : 'environment';
   let showBoxes = false;
 
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -238,6 +238,10 @@
       video.srcObject = stream;
       await video.play();
       sizeCanvasToVideo();
+      // Mirror preview for front camera so it feels natural on iOS/mobile
+      const isFront = currentFacingMode === 'user';
+      video.classList.toggle('mirrored', isFront);
+      overlay.classList.toggle('mirrored', isFront);
     } catch (err) {
       console.error('Video playback error:', err);
     }
@@ -357,10 +361,14 @@
       const expanded = toggleBtn.getAttribute('aria-expanded') === 'true';
       const next = !expanded;
       toggleBtn.setAttribute('aria-expanded', String(next));
-      toggleBtn.textContent = next ? 'Hide' : 'Show';
-      body.style.display = next ? 'block' : 'none';
+      toggleBtn.textContent = next ? 'Hide advanced' : 'Show advanced';
+      if (next) {
+        body.removeAttribute('hidden');
+      } else {
+        body.setAttribute('hidden', '');
+      }
     });
-    body.style.display = 'block';
+    body.setAttribute('hidden', '');
     syncUI();
   }
 

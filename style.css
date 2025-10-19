@@ -79,10 +79,17 @@ video, canvas.overlay {
 
 canvas.overlay { pointer-events: none; }
 
+/* Mirror for front-facing cameras so it feels like a selfie preview */
+video.mirrored, canvas.overlay.mirrored {
+  transform: scaleX(-1);
+  transform-origin: center center;
+}
+
 .controls {
   display: flex;
   gap: 12px;
   margin-top: 14px;
+  flex-wrap: wrap;
 }
 
 .btn {
@@ -124,6 +131,7 @@ canvas.overlay { pointer-events: none; }
 }
 
 .settings__body { margin-top: 4px; }
+.settings__body[hidden] { display: none !important; }
 
 .grid {
   display: grid;
@@ -146,6 +154,19 @@ input[type="number"] {
 }
 
 .settings__actions { margin-top: 12px; }
+
+/* Mobile responsiveness */
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .controls {
+    gap: 10px;
+  }
+  .btn {
+    flex: 1 1 auto;
+  }
+}
 
 .toasts {
   position: fixed;
