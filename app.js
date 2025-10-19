@@ -1,4 +1,5 @@
 (() => {
+  // Cache DOM references used across the app
   const banner = document.getElementById('banner');
   const bannerText = document.getElementById('bannerText');
   const video = document.getElementById('video');
@@ -20,13 +21,22 @@
 
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
+  // Canonical class sets/keywords from COCO-SSD taxonomy (or heuristics)
   const DRINK_CLASSES = new Set([
-    'cup', // many drink containers
-    'bottle', // water bottle, etc.
+    'cup',
     'wine glass',
   ]);
+  const BOOK_CLASSES = new Set(['book']);
+  const DRINK_KEYWORDS = ['cup', 'glass', 'wine'];
+  const TIN_KEYWORDS = ['tin', 'can', 'matcha']; // heuristic only; COCO may not emit these
 
-  const DRINK_KEYWORDS = ['cup', 'bottle', 'glass', 'wine'];
+  // Optional class-specific score overrides to aid hard cases
+  // Example: cups held upright may score lower; allow slightly lower threshold for 'cup'
+  const CLASS_MIN_SCORE = {
+    'cup': 0.25,
+    'wine glass': 0.35,
+    'book': 0.4,
+  };
 
   // Detection tuning
   let settings = {
@@ -54,12 +64,31 @@
     try { localStorage.setItem('performative-settings', JSON.stringify(settings)); } catch (_) {}
   }
 
+  // Returns true if prediction looks like a drink
   function isDrinkPrediction(pred) {
     const label = (pred.class || pred.label || '').toLowerCase();
     if (DRINK_CLASSES.has(label)) return true;
     return DRINK_KEYWORDS.some(k => label.includes(k));
   }
 
+  // Returns true if prediction looks like a book
+  function isBookPrediction(pred) {
+    const label = (pred.class || pred.label || '').toLowerCase();
+    return BOOK_CLASSES.has(label);
+  }
+
+  // Returns true if prediction looks like a tin/can (heuristic)
+  function isTinPrediction(pred) {
+    const label = (pred.class || pred.label || '').toLowerCase();
+    return TIN_KEYWORDS.some(k => label.includes(k));
+  }
+
+  // Unified performative predicate (drinks OR books OR tins)
+  function isPerformativePrediction(pred) {
+    return isDrinkPrediction(pred) || isBookPrediction(pred) || isTinPrediction(pred);
+  }
+
+  // Update the banner UI with the current performative state
   function setBanner(isPerformative) {
     const performative = Boolean(isPerformative);
     banner.classList.toggle('banner--performative', performative);
@@ -67,12 +96,14 @@
     bannerText.textContent = performative ? 'Performative' : 'Non‑performative';
   }
 
+  // Resize overlay canvas to match CSS size of the video, scaled by DPR
   function sizeCanvasToVideo() {
     const rect = video.getBoundingClientRect();
     overlay.width = rect.width * DPR;
     overlay.height = rect.height * DPR;
   }
 
+  // Draw bounding boxes and labels for predictions on the overlay canvas
   function drawDetections(predictions) {
     const ctx = overlay.getContext('2d');
     ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -118,6 +149,7 @@
   }
 
   // Toast utility
+  // Shows a small non-blocking message; click to dismiss
   function showToast(message, kind = 'info', ttlMs = 4000) {
     if (!toastsEl) return;
     const el = document.createElement('div');
@@ -133,6 +165,7 @@
     });
   }
 
+  // Main detection loop; runs once per animation frame
   async function detectLoop() {
     if (!model || video.readyState < 2) {
       rafId = requestAnimationFrame(detectLoop);
@@ -140,18 +173,25 @@
     }
     try {
       const predictions = await model.detect(video);
-      // Use hysteresis thresholds from settings
-      const threshold = isPerformativeState ? settings.exitScore : settings.enterScore;
-      const drinkPreds = predictions.filter(p => isDrinkPrediction(p) && (p.score || 0) >= threshold);
+      // Use hysteresis thresholds from settings with class-specific overrides
+      const baseThreshold = isPerformativeState ? settings.exitScore : settings.enterScore;
+      const filtered = predictions.filter(p => {
+        if (!isPerformativePrediction(p)) return false;
+        const label = (p.class || p.label || '').toLowerCase();
+        const classMin = CLASS_MIN_SCORE[label] ?? 0;
+        const required = Math.max(baseThreshold, classMin);
+        const score = p.score || 0;
+        return score >= required;
+      });
       if (showBoxes) {
-        drawDetections(drinkPreds);
+        drawDetections(filtered);
       } else {
         const ctx = overlay.getContext('2d');
         ctx.clearRect(0, 0, overlay.width, overlay.height);
       }
 
-      const hasDrinkThisFrame = drinkPreds.length > 0;
-      if (hasDrinkThisFrame) {
+      const hasPerformativeThisFrame = filtered.length > 0;
+      if (hasPerformativeThisFrame) {
         consecutiveDrinkFrames += 1;
         consecutiveNoDrinkFrames = 0;
       } else {
@@ -174,6 +214,7 @@
     }
   }
 
+  // Start camera stream, initialize TF backend/model if needed, and kick off detection
   async function startCamera() {
     startBtn.disabled = true;
     // Acquire camera first; only alert on camera errors
@@ -233,6 +274,7 @@
     stopBtn.disabled = false;
   }
 
+  // Stop camera stream and cancel the detection loop
   function stopCamera() {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
@@ -249,6 +291,7 @@
   }
 
   // Settings UI wiring
+  // Wire settings inputs and persist to localStorage
   function initSettingsUI() {
     loadSettings();
     const enterEl = document.getElementById('enterThreshold');
@@ -261,6 +304,7 @@
     const toggleBtn = document.getElementById('toggleSettings');
     const body = document.getElementById('settingsBody');
 
+    // Update input elements to reflect current settings
     function syncUI() {
       enterEl.value = String(settings.enterScore);
       exitEl.value = String(settings.exitScore);
@@ -320,6 +364,7 @@
     syncUI();
   }
 
+  // Core event wiring
   window.addEventListener('resize', sizeCanvasToVideo);
   startBtn.addEventListener('click', startCamera);
   stopBtn.addEventListener('click', stopCamera);

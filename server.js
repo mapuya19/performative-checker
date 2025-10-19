@@ -47,6 +47,7 @@ function send(res, status, content, headers = {}) {
   res.end(content);
 }
 
+// Simple static file server with minimal security headers suitable for local dev
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
   const filePath = path.join(process.cwd(), urlPath === '/' ? 'index.html' : urlPath);
