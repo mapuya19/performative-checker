@@ -60,10 +60,34 @@
   // GSAP ANIMATIONS SETUP
   // ============================================
   
+  // Check if GSAP is available
+  function isGsapAvailable() {
+    return typeof gsap !== 'undefined';
+  }
+
   // Page load animation timeline
   function initPageAnimations() {
     if (hasAnimatedIn) return;
     hasAnimatedIn = true;
+
+    // Fallback if GSAP isn't loaded
+    if (!isGsapAvailable()) {
+      console.warn('GSAP not available, using CSS fallbacks');
+      banner.style.opacity = '1';
+      banner.style.transform = 'translateY(0)';
+      document.querySelector('.container').style.opacity = '1';
+      cameraSection.style.opacity = '1';
+      cameraSection.style.transform = 'translateY(0) scale(1)';
+      controlsEl.style.opacity = '1';
+      controlsEl.style.transform = 'translateY(0)';
+      controlsEl.querySelectorAll('.btn').forEach(btn => {
+        btn.style.opacity = '1';
+        btn.style.transform = 'translateY(0) scale(1)';
+      });
+      settingsSection.style.opacity = '1';
+      settingsSection.style.transform = 'translateY(0)';
+      return;
+    }
 
     const tl = gsap.timeline({
       defaults: { ease: 'power3.out' }
@@ -182,48 +206,58 @@
     
     modal.classList.add('visible');
     
-    gsap.fromTo(modal.querySelector('.loading-modal__backdrop'),
-      { opacity: 0 },
-      { opacity: 1, duration: 0.3, ease: 'power2.out' }
-    );
-    
-    gsap.fromTo(modal.querySelector('.loading-modal__content'),
-      { opacity: 0, scale: 0.9, y: 20 },
-      { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: 'back.out(1.7)', delay: 0.1 }
-    );
+    if (isGsapAvailable()) {
+      gsap.fromTo(modal.querySelector('.loading-modal__backdrop'),
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3, ease: 'power2.out' }
+      );
+      
+      gsap.fromTo(modal.querySelector('.loading-modal__content'),
+        { opacity: 0, scale: 0.9, y: 20 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: 'back.out(1.7)', delay: 0.1 }
+      );
+    }
   }
 
   function hideLoadingModal() {
     if (!loadingModal) return;
     
-    gsap.to(loadingModal.querySelector('.loading-modal__content'), {
-      opacity: 0,
-      scale: 0.95,
-      y: -10,
-      duration: 0.25,
-      ease: 'power2.in',
-    });
-    
-    gsap.to(loadingModal.querySelector('.loading-modal__backdrop'), {
-      opacity: 0,
-      duration: 0.3,
-      ease: 'power2.in',
-      delay: 0.1,
-      onComplete: () => {
-        loadingModal.classList.remove('visible');
-      }
-    });
+    if (isGsapAvailable()) {
+      gsap.to(loadingModal.querySelector('.loading-modal__content'), {
+        opacity: 0,
+        scale: 0.95,
+        y: -10,
+        duration: 0.25,
+        ease: 'power2.in',
+      });
+      
+      gsap.to(loadingModal.querySelector('.loading-modal__backdrop'), {
+        opacity: 0,
+        duration: 0.3,
+        ease: 'power2.in',
+        delay: 0.1,
+        onComplete: () => {
+          loadingModal.classList.remove('visible');
+        }
+      });
+    } else {
+      loadingModal.classList.remove('visible');
+    }
   }
 
   function updateLoadingProgress(progress) {
     if (!loadingModal) return;
     const progressBar = loadingModal.querySelector('.loading-modal__progress-bar');
     if (progressBar) {
-      gsap.to(progressBar, {
-        width: `${progress}%`,
-        duration: 0.3,
-        ease: 'power2.out',
-      });
+      if (isGsapAvailable()) {
+        gsap.to(progressBar, {
+          width: `${progress}%`,
+          duration: 0.3,
+          ease: 'power2.out',
+        });
+      } else {
+        progressBar.style.width = `${progress}%`;
+      }
     }
   }
 
@@ -254,15 +288,21 @@
       const targetX = Math.cos(angle) * distance;
       const targetY = Math.sin(angle) * distance;
       
-      gsap.to(particle, {
-        x: targetX,
-        y: targetY,
-        opacity: 0,
-        scale: 0,
-        duration: 0.8 + Math.random() * 0.4,
-        ease: 'power2.out',
-        onComplete: () => particle.remove(),
-      });
+      if (isGsapAvailable()) {
+        gsap.to(particle, {
+          x: targetX,
+          y: targetY,
+          opacity: 0,
+          scale: 0,
+          duration: 0.8 + Math.random() * 0.4,
+          ease: 'power2.out',
+          onComplete: () => particle.remove(),
+        });
+      } else {
+        particle.style.transform = `translate(${targetX}px, ${targetY}px) scale(0)`;
+        particle.style.opacity = '0';
+        setTimeout(() => particle.remove(), 800);
+      }
     });
   }
 
@@ -284,29 +324,35 @@
   // ============================================
   function animateCameraStart() {
     // Hide placeholder
-    gsap.to(cameraPlaceholder, {
-      opacity: 0,
-      scale: 0.9,
-      duration: 0.4,
-      ease: 'power2.in',
-      onComplete: () => {
-        cameraPlaceholder.classList.add('hidden');
-      }
-    });
+    if (isGsapAvailable()) {
+      gsap.to(cameraPlaceholder, {
+        opacity: 0,
+        scale: 0.9,
+        duration: 0.4,
+        ease: 'power2.in',
+        onComplete: () => {
+          cameraPlaceholder.classList.add('hidden');
+        }
+      });
+    } else {
+      cameraPlaceholder.classList.add('hidden');
+    }
     
     // Show video with scale + fade
     video.classList.add('active');
-    gsap.fromTo(video, 
-      { opacity: 0, scale: 1.1, filter: 'blur(10px)' },
-      { 
-        opacity: 1, 
-        scale: 1, 
-        filter: 'blur(0px)',
-        duration: 0.6, 
-        ease: 'power2.out',
-        delay: 0.2
-      }
-    );
+    if (isGsapAvailable()) {
+      gsap.fromTo(video, 
+        { opacity: 0, scale: 1.1, filter: 'blur(10px)' },
+        { 
+          opacity: 1, 
+          scale: 1, 
+          filter: 'blur(0px)',
+          duration: 0.6, 
+          ease: 'power2.out',
+          delay: 0.2
+        }
+      );
+    }
 
     // Disable glow animation on start button
     startBtn.classList.add('no-glow');
@@ -315,22 +361,29 @@
   function animateCameraStop() {
     video.classList.remove('active');
     
-    gsap.to(video, {
-      opacity: 0,
-      scale: 1.05,
-      duration: 0.3,
-      ease: 'power2.in',
-    });
+    if (isGsapAvailable()) {
+      gsap.to(video, {
+        opacity: 0,
+        scale: 1.05,
+        duration: 0.3,
+        ease: 'power2.in',
+      });
+    }
     
     // Show placeholder
     cameraPlaceholder.classList.remove('hidden');
-    gsap.to(cameraPlaceholder, {
-      opacity: 1,
-      scale: 1,
-      duration: 0.4,
-      ease: 'back.out(1.4)',
-      delay: 0.2
-    });
+    if (isGsapAvailable()) {
+      gsap.to(cameraPlaceholder, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.4,
+        ease: 'back.out(1.4)',
+        delay: 0.2
+      });
+    } else {
+      cameraPlaceholder.style.opacity = '1';
+      cameraPlaceholder.style.transform = 'scale(1)';
+    }
 
     // Re-enable glow animation
     startBtn.classList.remove('no-glow');
@@ -370,34 +423,43 @@
         const contentHeight = content.offsetHeight;
         body.classList.add('open');
         
-        gsap.to(body, {
-          height: contentHeight,
-          duration: 0.5,
-          ease: 'power3.out',
-        });
-        
-        // Stagger animate children
-        gsap.fromTo(content.querySelectorAll('.field, .settings__actions'), 
-          { opacity: 0, y: 15 },
-          { 
-            opacity: 1, 
-            y: 0, 
-            stagger: 0.05, 
-            duration: 0.4,
-            ease: 'power2.out',
-            delay: 0.1
-          }
-        );
+        if (isGsapAvailable()) {
+          gsap.to(body, {
+            height: contentHeight,
+            duration: 0.5,
+            ease: 'power3.out',
+          });
+          
+          // Stagger animate children
+          gsap.fromTo(content.querySelectorAll('.field, .settings__actions'), 
+            { opacity: 0, y: 15 },
+            { 
+              opacity: 1, 
+              y: 0, 
+              stagger: 0.05, 
+              duration: 0.4,
+              ease: 'power2.out',
+              delay: 0.1
+            }
+          );
+        } else {
+          body.style.height = `${contentHeight}px`;
+        }
       } else {
         // Closing
-        gsap.to(body, {
-          height: 0,
-          duration: 0.4,
-          ease: 'power3.inOut',
-          onComplete: () => {
-            body.classList.remove('open');
-          }
-        });
+        if (isGsapAvailable()) {
+          gsap.to(body, {
+            height: 0,
+            duration: 0.4,
+            ease: 'power3.inOut',
+            onComplete: () => {
+              body.classList.remove('open');
+            }
+          });
+        } else {
+          body.style.height = '0';
+          body.classList.remove('open');
+        }
       }
     });
   }
@@ -487,10 +549,12 @@
     
     // Animate banner text on state change
     if (wasPerformative !== performative) {
-      gsap.fromTo(bannerText, 
-        { scale: 0.9, opacity: 0.5 },
-        { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(2)' }
-      );
+      if (isGsapAvailable()) {
+        gsap.fromTo(bannerText, 
+          { scale: 0.9, opacity: 0.5 },
+          { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(2)' }
+        );
+      }
       
       // Trigger particle effect
       triggerDetectionEffect();
@@ -860,13 +924,15 @@
       consecutiveNoDrinkFrames = 0;
       
       // Animate reset button
-      gsap.to(resetBtn, {
-        scale: 0.95,
-        duration: 0.1,
-        yoyo: true,
-        repeat: 1,
-        ease: 'power2.inOut',
-      });
+      if (isGsapAvailable()) {
+        gsap.to(resetBtn, {
+          scale: 0.95,
+          duration: 0.1,
+          yoyo: true,
+          repeat: 1,
+          ease: 'power2.inOut',
+        });
+      }
       
       showToast('Settings reset to defaults', 'info', 2000);
     });
@@ -885,18 +951,20 @@
       toggleBoxesBtn.querySelector('.btn__text').textContent = `Boxes: ${showBoxes ? 'On' : 'Off'}`;
       
       // Spring animation on toggle
-      gsap.to(toggleBoxesBtn, {
-        scale: 1.1,
-        duration: 0.15,
-        ease: 'power2.out',
-        onComplete: () => {
-          gsap.to(toggleBoxesBtn, {
-            scale: 1,
-            duration: 0.4,
-            ease: 'elastic.out(1, 0.5)',
-          });
-        }
-      });
+      if (isGsapAvailable()) {
+        gsap.to(toggleBoxesBtn, {
+          scale: 1.1,
+          duration: 0.15,
+          ease: 'power2.out',
+          onComplete: () => {
+            gsap.to(toggleBoxesBtn, {
+              scale: 1,
+              duration: 0.4,
+              ease: 'elastic.out(1, 0.5)',
+            });
+          }
+        });
+      }
       
       if (!showBoxes) {
         const ctx = overlay.getContext('2d');
