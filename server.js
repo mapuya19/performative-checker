@@ -31,7 +31,7 @@ function send(res, status, content, headers = {}) {
     'Content-Security-Policy': [
       "default-src 'self'",
       // TFJS on Firefox may require 'unsafe-eval' and 'wasm-unsafe-eval'
-      "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net",
+      "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data:",

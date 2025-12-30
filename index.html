@@ -6,57 +6,116 @@
     <title>Performative Detector</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <!-- Animated background layers -->
+    <div class="bg-gradient" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow bg-glow--1" aria-hidden="true"></div>
+    <div class="bg-glow bg-glow--2" aria-hidden="true"></div>
+
     <header class="banner" id="banner" aria-live="polite" aria-atomic="true">
-      <div class="banner__text" id="bannerText">Performative Detector</div>
+      <div class="banner__inner">
+        <div class="banner__text" id="bannerText">Performative Detector</div>
+        <div class="banner__status" id="bannerStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">Ready</span>
+        </div>
+      </div>
     </header>
 
     <main class="container">
-      <section class="camera">
-        <div class="video-wrap">
+      <section class="camera" id="cameraSection">
+        <div class="video-wrap" id="videoWrap">
+          <!-- Camera placeholder shown when inactive -->
+          <div class="camera-placeholder" id="cameraPlaceholder">
+            <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span class="camera-placeholder__text">Camera preview</span>
+          </div>
           <video id="video" autoplay playsinline muted></video>
           <canvas id="overlay" class="overlay" aria-hidden="true"></canvas>
+          <!-- Particle container for detection effects -->
+          <div class="particles" id="particles" aria-hidden="true"></div>
         </div>
-        <div class="controls">
-          <button id="startBtn" class="btn">Start camera</button>
-          <button id="stopBtn" class="btn btn--ghost" disabled>Stop</button>
-          <button id="switchCameraBtn" class="btn btn--ghost" title="Switch front/rear">Switch camera</button>
-          <button id="toggleBoxesBtn" class="btn btn--ghost" title="Toggle detection boxes">Boxes: Off</button>
+        <div class="controls" id="controls">
+          <button id="startBtn" class="btn btn--primary">
+            <span class="btn__glow"></span>
+            <span class="btn__text">Start camera</span>
+          </button>
+          <button id="stopBtn" class="btn btn--ghost" disabled>
+            <span class="btn__text">Stop</span>
+          </button>
+          <button id="switchCameraBtn" class="btn btn--ghost" title="Switch front/rear">
+            <span class="btn__text">Switch camera</span>
+          </button>
+          <button id="toggleBoxesBtn" class="btn btn--ghost" title="Toggle detection boxes">
+            <span class="btn__text">Boxes: Off</span>
+          </button>
         </div>
-        <p class="hint">We only process video locally in your browser. No data leaves your device.</p>
+        <div class="hint-wrap">
+          <p class="hint" id="privacyHint">
+            <span class="hint__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </span>
+            <span class="hint__text">We only process video locally in your browser. No data leaves your device.</span>
+          </p>
+        </div>
       </section>
 
-      <section class="settings" aria-labelledby="settingsTitle">
+      <section class="settings" id="settingsSection" aria-labelledby="settingsTitle">
         <div class="settings__header">
-          <h2 id="settingsTitle">Advanced</h2>
-          <button id="toggleSettings" class="btn btn--ghost" aria-expanded="false" aria-controls="settingsBody">Show advanced</button>
+          <h2 id="settingsTitle" class="settings__title">Advanced</h2>
+          <button id="toggleSettings" class="btn btn--ghost" aria-expanded="false" aria-controls="settingsBody">
+            <span class="btn__text">Show advanced</span>
+            <svg class="settings__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
         </div>
         <div id="settingsBody" class="settings__body">
-          <div class="grid">
-            <label class="field">
-              <span class="field__label">Enter threshold</span>
-              <input id="enterThreshold" type="range" min="0.1" max="0.9" step="0.01" />
-              <span class="field__value" id="enterThresholdValue"></span>
-            </label>
-            <label class="field">
-              <span class="field__label">Exit threshold</span>
-              <input id="exitThreshold" type="range" min="0.1" max="0.9" step="0.01" />
-              <span class="field__value" id="exitThresholdValue"></span>
-            </label>
-            <label class="field">
-              <span class="field__label">Frames to enter</span>
-              <input id="framesEnter" type="number" min="1" max="30" />
-            </label>
-            <label class="field">
-              <span class="field__label">Frames to exit</span>
-              <input id="framesExit" type="number" min="1" max="60" />
-            </label>
-          </div>
-          <div class="settings__actions">
-            <button id="resetSettings" class="btn">Reset defaults</button>
+          <div class="settings__content">
+            <div class="grid">
+              <label class="field">
+                <span class="field__label">Enter threshold</span>
+                <div class="range-wrap">
+                  <input id="enterThreshold" type="range" min="0.1" max="0.9" step="0.01" class="range-input" />
+                  <div class="range-track"></div>
+                  <div class="range-fill" id="enterThresholdFill"></div>
+                  <div class="range-tooltip" id="enterThresholdTooltip"></div>
+                </div>
+                <span class="field__value" id="enterThresholdValue"></span>
+              </label>
+              <label class="field">
+                <span class="field__label">Exit threshold</span>
+                <div class="range-wrap">
+                  <input id="exitThreshold" type="range" min="0.1" max="0.9" step="0.01" class="range-input" />
+                  <div class="range-track"></div>
+                  <div class="range-fill" id="exitThresholdFill"></div>
+                  <div class="range-tooltip" id="exitThresholdTooltip"></div>
+                </div>
+                <span class="field__value" id="exitThresholdValue"></span>
+              </label>
+              <label class="field">
+                <span class="field__label">Frames to enter</span>
+                <input id="framesEnter" type="number" min="1" max="30" class="number-input" />
+              </label>
+              <label class="field">
+                <span class="field__label">Frames to exit</span>
+                <input id="framesExit" type="number" min="1" max="60" class="number-input" />
+              </label>
+            </div>
+            <div class="settings__actions">
+              <button id="resetSettings" class="btn">
+                <span class="btn__text">Reset defaults</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -64,11 +123,13 @@
 
     <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <!-- TFJS + COCO-SSD -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
     <script src="./app.js"></script>
   </body>
-  </html>
+</html>
 
 
