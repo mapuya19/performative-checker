@@ -1,34 +1,77 @@
 (() => {
   // ============================================
+  // TYPE DEFINITIONS
+  // ============================================
+  interface Prediction {
+    bbox?: number[];
+    boundingBox?: number[];
+    class?: string;
+    label?: string;
+    score?: number;
+  }
+
+  interface Settings {
+    enterScore: number;
+    exitScore: number;
+    framesEnter: number;
+    framesExit: number;
+  }
+
+  interface ClassMinScore {
+    [key: string]: number;
+  }
+
+  interface DOMElementCache {
+    banner: HTMLElement;
+    bannerText: HTMLElement;
+    bannerStatus: HTMLElement;
+    video: HTMLVideoElement;
+    overlay: HTMLCanvasElement;
+    startBtn: HTMLButtonElement;
+    stopBtn: HTMLButtonElement;
+    toastsEl: HTMLElement;
+    switchCameraBtn: HTMLButtonElement;
+    toggleBoxesBtn: HTMLButtonElement;
+    cameraPlaceholder: HTMLElement;
+    videoWrap: HTMLElement;
+    particlesContainer: HTMLElement;
+    cameraSection: HTMLElement;
+    settingsSection: HTMLElement;
+    controlsEl: HTMLElement;
+  }
+
+  // ============================================
   // DOM REFERENCES
   // ============================================
-  const banner = document.getElementById('banner');
-  const bannerText = document.getElementById('bannerText');
-  const bannerStatus = document.getElementById('bannerStatus');
-  const video = document.getElementById('video');
-  const overlay = document.getElementById('overlay');
-  const startBtn = document.getElementById('startBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const toastsEl = document.getElementById('toasts');
-  const switchCameraBtn = document.getElementById('switchCameraBtn');
-  const toggleBoxesBtn = document.getElementById('toggleBoxesBtn');
-  const cameraPlaceholder = document.getElementById('cameraPlaceholder');
-  const videoWrap = document.getElementById('videoWrap');
-  const particlesContainer = document.getElementById('particles');
-  const cameraSection = document.getElementById('cameraSection');
-  const settingsSection = document.getElementById('settingsSection');
-  const controlsEl = document.getElementById('controls');
+  const dom: DOMElementCache = {
+    banner: document.getElementById('banner') as HTMLElement,
+    bannerText: document.getElementById('bannerText') as HTMLElement,
+    bannerStatus: document.getElementById('bannerStatus') as HTMLElement,
+    video: document.getElementById('video') as HTMLVideoElement,
+    overlay: document.getElementById('overlay') as HTMLCanvasElement,
+    startBtn: document.getElementById('startBtn') as HTMLButtonElement,
+    stopBtn: document.getElementById('stopBtn') as HTMLButtonElement,
+    toastsEl: document.getElementById('toasts') as HTMLElement,
+    switchCameraBtn: document.getElementById('switchCameraBtn') as HTMLButtonElement,
+    toggleBoxesBtn: document.getElementById('toggleBoxesBtn') as HTMLButtonElement,
+    cameraPlaceholder: document.getElementById('cameraPlaceholder') as HTMLElement,
+    videoWrap: document.getElementById('videoWrap') as HTMLElement,
+    particlesContainer: document.getElementById('particles') as HTMLElement,
+    cameraSection: document.getElementById('cameraSection') as HTMLElement,
+    settingsSection: document.getElementById('settingsSection') as HTMLElement,
+    controlsEl: document.getElementById('controls') as HTMLElement,
+  };
 
   // ============================================
   // STATE
   // ============================================
-  let model = null;
-  let stream = null;
-  let rafId = null;
+  let model: any = null;
+  let stream: MediaStream | null = null;
+  let rafId: number | null = null;
   let isPerformativeState = false;
   let consecutiveDrinkFrames = 0;
   let consecutiveNoDrinkFrames = 0;
-  let currentFacingMode = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'user' : 'environment';
+  let currentFacingMode: 'user' | 'environment' = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'user' : 'environment';
   let showBoxes = false;
   let lastDetectionTime = 0;
   let hasAnimatedIn = false;
@@ -43,13 +86,13 @@
   const DRINK_KEYWORDS = ['cup', 'glass', 'wine'];
   const TIN_KEYWORDS = ['tin', 'can', 'matcha'];
 
-  const CLASS_MIN_SCORE = {
+  const CLASS_MIN_SCORE: ClassMinScore = {
     'cup': 0.25,
     'wine glass': 0.35,
     'book': 0.4,
   };
 
-  let settings = {
+  let settings: Settings = {
     enterScore: 0.35,
     exitScore: 0.30,
     framesEnter: 4,
@@ -60,54 +103,51 @@
   // GSAP ANIMATIONS SETUP
   // ============================================
   
-  // Check if GSAP is available
-  function isGsapAvailable() {
-    return typeof gsap !== 'undefined';
+  function isGsapAvailable(): boolean {
+    return typeof (globalThis as any).gsap !== 'undefined';
   }
 
-  // Page load animation timeline
-  function initPageAnimations() {
+  function initPageAnimations(): void {
     if (hasAnimatedIn) return;
     hasAnimatedIn = true;
 
-    // Fallback if GSAP isn't loaded
     if (!isGsapAvailable()) {
       console.warn('GSAP not available, using CSS fallbacks');
-      banner.style.opacity = '1';
-      banner.style.transform = 'translateY(0)';
-      document.querySelector('.container').style.opacity = '1';
-      cameraSection.style.opacity = '1';
-      cameraSection.style.transform = 'translateY(0) scale(1)';
-      controlsEl.style.opacity = '1';
-      controlsEl.style.transform = 'translateY(0)';
-      controlsEl.querySelectorAll('.btn').forEach(btn => {
-        btn.style.opacity = '1';
-        btn.style.transform = 'translateY(0) scale(1)';
+      dom.banner.style.opacity = '1';
+      dom.banner.style.transform = 'translateY(0)';
+      const container = document.querySelector('.container') as HTMLElement;
+      if (container) container.style.opacity = '1';
+      dom.cameraSection.style.opacity = '1';
+      dom.cameraSection.style.transform = 'translateY(0) scale(1)';
+      dom.controlsEl.style.opacity = '1';
+      dom.controlsEl.style.transform = 'translateY(0)';
+      dom.controlsEl.querySelectorAll('.btn').forEach((btn) => {
+        const button = btn as HTMLElement;
+        button.style.opacity = '1';
+        button.style.transform = 'translateY(0) scale(1)';
       });
-      settingsSection.style.opacity = '1';
-      settingsSection.style.transform = 'translateY(0)';
+      dom.settingsSection.style.opacity = '1';
+      dom.settingsSection.style.transform = 'translateY(0)';
       return;
     }
 
+    const gsap = (globalThis as any).gsap;
     const tl = gsap.timeline({
       defaults: { ease: 'power3.out' }
     });
 
-    // Animate banner sliding down
-    tl.to(banner, {
+    tl.to(dom.banner, {
       opacity: 1,
       y: 0,
       duration: 0.8,
     });
 
-    // Animate container fade in
     tl.to('.container', {
       opacity: 1,
       duration: 0.5,
     }, '-=0.4');
 
-    // Animate camera section with scale and fade
-    tl.to(cameraSection, {
+    tl.to(dom.cameraSection, {
       opacity: 1,
       y: 0,
       scale: 1,
@@ -115,14 +155,13 @@
       ease: 'back.out(1.4)',
     }, '-=0.3');
 
-    // Stagger animate controls
-    tl.to(controlsEl, {
+    tl.to(dom.controlsEl, {
       opacity: 1,
       y: 0,
       duration: 0.5,
     }, '-=0.3');
 
-    tl.to(controlsEl.querySelectorAll('.btn'), {
+    tl.to(dom.controlsEl.querySelectorAll('.btn'), {
       opacity: 1,
       y: 0,
       scale: 1,
@@ -131,8 +170,7 @@
       ease: 'back.out(1.7)',
     }, '-=0.3');
 
-    // Animate settings section
-    tl.to(settingsSection, {
+    tl.to(dom.settingsSection, {
       opacity: 1,
       y: 0,
       duration: 0.5,
@@ -142,11 +180,10 @@
   // ============================================
   // BUTTON SHINE EFFECT ON HOVER
   // ============================================
-  function initButtonEffects() {
+  function initButtonEffects(): void {
     const buttons = document.querySelectorAll('.btn');
     
-    buttons.forEach(btn => {
-      // Create shine element if not exists
+    buttons.forEach((btn) => {
       if (!btn.querySelector('.btn__shine')) {
         const shine = document.createElement('span');
         shine.className = 'btn__shine';
@@ -154,10 +191,10 @@
       }
       
       btn.addEventListener('mouseenter', () => {
-        const shine = btn.querySelector('.btn__shine');
+        const shine = btn.querySelector('.btn__shine') as HTMLElement;
         if (shine) {
           shine.classList.remove('animate');
-          void shine.offsetWidth; // Force reflow
+          void shine.offsetWidth;
           shine.classList.add('animate');
         }
       });
@@ -167,9 +204,9 @@
   // ============================================
   // LOADING MODAL
   // ============================================
-  let loadingModal = null;
+  let loadingModal: HTMLElement | null = null;
 
-  function createLoadingModal() {
+  function createLoadingModal(): HTMLElement {
     if (loadingModal) return loadingModal;
     
     const modal = document.createElement('div');
@@ -196,10 +233,10 @@
     return modal;
   }
 
-  function showLoadingModal(title = 'Loading Model', subtitle = 'Preparing object detection...') {
+  function showLoadingModal(title: string = 'Loading Model', subtitle: string = 'Preparing object detection...'): void {
     const modal = createLoadingModal();
-    const titleEl = modal.querySelector('.loading-modal__title');
-    const subtitleEl = modal.querySelector('.loading-modal__subtitle');
+    const titleEl = modal.querySelector('.loading-modal__title') as HTMLElement;
+    const subtitleEl = modal.querySelector('.loading-modal__subtitle') as HTMLElement;
     
     if (titleEl) titleEl.textContent = title;
     if (subtitleEl) subtitleEl.textContent = subtitle;
@@ -207,6 +244,7 @@
     modal.classList.add('visible');
     
     if (isGsapAvailable()) {
+      const gsap = (globalThis as any).gsap;
       gsap.fromTo(modal.querySelector('.loading-modal__backdrop'),
         { opacity: 0 },
         { opacity: 1, duration: 0.3, ease: 'power2.out' }
@@ -219,10 +257,11 @@
     }
   }
 
-  function hideLoadingModal() {
+  function hideLoadingModal(): void {
     if (!loadingModal) return;
     
     if (isGsapAvailable()) {
+      const gsap = (globalThis as any).gsap;
       gsap.to(loadingModal.querySelector('.loading-modal__content'), {
         opacity: 0,
         scale: 0.95,
@@ -237,7 +276,7 @@
         ease: 'power2.in',
         delay: 0.1,
         onComplete: () => {
-          loadingModal.classList.remove('visible');
+          loadingModal!.classList.remove('visible');
         }
       });
     } else {
@@ -245,11 +284,12 @@
     }
   }
 
-  function updateLoadingProgress(progress) {
+  function updateLoadingProgress(progress: number): void {
     if (!loadingModal) return;
-    const progressBar = loadingModal.querySelector('.loading-modal__progress-bar');
+    const progressBar = loadingModal.querySelector('.loading-modal__progress-bar') as HTMLElement;
     if (progressBar) {
       if (isGsapAvailable()) {
+        const gsap = (globalThis as any).gsap;
         gsap.to(progressBar, {
           width: `${progress}%`,
           duration: 0.3,
@@ -264,9 +304,9 @@
   // ============================================
   // PARTICLE BURST EFFECT
   // ============================================
-  function createParticleBurst(x, y, color = '#00ff88') {
+  function createParticleBurst(x: number, y: number, color: string = '#00ff88'): void {
     const particleCount = 12;
-    const particles = [];
+    const particles: HTMLElement[] = [];
     
     for (let i = 0; i < particleCount; i++) {
       const particle = document.createElement('div');
@@ -277,11 +317,10 @@
         background: ${color};
         box-shadow: 0 0 10px ${color};
       `;
-      particlesContainer.appendChild(particle);
+      dom.particlesContainer.appendChild(particle);
       particles.push(particle);
     }
     
-    // Animate particles outward
     particles.forEach((particle, i) => {
       const angle = (i / particleCount) * Math.PI * 2;
       const distance = 60 + Math.random() * 40;
@@ -289,6 +328,7 @@
       const targetY = Math.sin(angle) * distance;
       
       if (isGsapAvailable()) {
+        const gsap = (globalThis as any).gsap;
         gsap.to(particle, {
           x: targetX,
           y: targetY,
@@ -306,13 +346,12 @@
     });
   }
 
-  // Trigger particles on detection state change
-  function triggerDetectionEffect() {
+  function triggerDetectionEffect(): void {
     const now = Date.now();
-    if (now - lastDetectionTime < 1000) return; // Throttle
+    if (now - lastDetectionTime < 1000) return;
     lastDetectionTime = now;
     
-    const rect = videoWrap.getBoundingClientRect();
+    const rect = dom.videoWrap.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     
@@ -322,26 +361,26 @@
   // ============================================
   // CAMERA TRANSITION ANIMATIONS
   // ============================================
-  function animateCameraStart() {
-    // Hide placeholder
+  function animateCameraStart(): void {
     if (isGsapAvailable()) {
-      gsap.to(cameraPlaceholder, {
+      const gsap = (globalThis as any).gsap;
+      gsap.to(dom.cameraPlaceholder, {
         opacity: 0,
         scale: 0.9,
         duration: 0.4,
         ease: 'power2.in',
         onComplete: () => {
-          cameraPlaceholder.classList.add('hidden');
+          dom.cameraPlaceholder.classList.add('hidden');
         }
       });
     } else {
-      cameraPlaceholder.classList.add('hidden');
+      dom.cameraPlaceholder.classList.add('hidden');
     }
     
-    // Show video with scale + fade
-    video.classList.add('active');
+    dom.video.classList.add('active');
     if (isGsapAvailable()) {
-      gsap.fromTo(video, 
+      const gsap = (globalThis as any).gsap;
+      gsap.fromTo(dom.video, 
         { opacity: 0, scale: 1.1, filter: 'blur(10px)' },
         { 
           opacity: 1, 
@@ -354,15 +393,15 @@
       );
     }
 
-    // Disable glow animation on start button
-    startBtn.classList.add('no-glow');
+    dom.startBtn.classList.add('no-glow');
   }
 
-  function animateCameraStop() {
-    video.classList.remove('active');
+  function animateCameraStop(): void {
+    dom.video.classList.remove('active');
     
     if (isGsapAvailable()) {
-      gsap.to(video, {
+      const gsap = (globalThis as any).gsap;
+      gsap.to(dom.video, {
         opacity: 0,
         scale: 1.05,
         duration: 0.3,
@@ -370,10 +409,10 @@
       });
     }
     
-    // Show placeholder
-    cameraPlaceholder.classList.remove('hidden');
+    dom.cameraPlaceholder.classList.remove('hidden');
     if (isGsapAvailable()) {
-      gsap.to(cameraPlaceholder, {
+      const gsap = (globalThis as any).gsap;
+      gsap.to(dom.cameraPlaceholder, {
         opacity: 1,
         scale: 1,
         duration: 0.4,
@@ -381,33 +420,29 @@
         delay: 0.2
       });
     } else {
-      cameraPlaceholder.style.opacity = '1';
-      cameraPlaceholder.style.transform = 'scale(1)';
+      dom.cameraPlaceholder.style.opacity = '1';
+      dom.cameraPlaceholder.style.transform = 'scale(1)';
     }
 
-    // Re-enable glow animation
-    startBtn.classList.remove('no-glow');
+    dom.startBtn.classList.remove('no-glow');
   }
 
-  function animateCameraSwitch() {
-    // Apply circular wipe class
-    video.classList.add('switching');
+  function animateCameraSwitch(): void {
+    dom.video.classList.add('switching');
     
-    // Remove class after animation
     setTimeout(() => {
-      video.classList.remove('switching');
+      dom.video.classList.remove('switching');
     }, 600);
   }
 
   // ============================================
   // ACCORDION ANIMATION
   // ============================================
-  function initAccordion() {
-    const toggleBtn = document.getElementById('toggleSettings');
-    const body = document.getElementById('settingsBody');
-    const content = body.querySelector('.settings__content');
+  function initAccordion(): void {
+    const toggleBtn = document.getElementById('toggleSettings') as HTMLButtonElement;
+    const body = document.getElementById('settingsBody') as HTMLElement;
+    const content = body.querySelector('.settings__content') as HTMLElement;
     
-    // Set initial state
     body.style.height = '0px';
     body.style.overflow = 'hidden';
     
@@ -416,21 +451,21 @@
       const newState = !isExpanded;
       
       toggleBtn.setAttribute('aria-expanded', String(newState));
-      toggleBtn.querySelector('.btn__text').textContent = newState ? 'Hide advanced' : 'Show advanced';
+      const btnText = toggleBtn.querySelector('.btn__text') as HTMLElement;
+      btnText.textContent = newState ? 'Hide advanced' : 'Show advanced';
       
       if (newState) {
-        // Opening
         const contentHeight = content.offsetHeight;
         body.classList.add('open');
         
         if (isGsapAvailable()) {
+          const gsap = (globalThis as any).gsap;
           gsap.to(body, {
             height: contentHeight,
             duration: 0.5,
             ease: 'power3.out',
           });
           
-          // Stagger animate children
           gsap.fromTo(content.querySelectorAll('.field, .settings__actions'), 
             { opacity: 0, y: 15 },
             { 
@@ -446,8 +481,8 @@
           body.style.height = `${contentHeight}px`;
         }
       } else {
-        // Closing
         if (isGsapAvailable()) {
+          const gsap = (globalThis as any).gsap;
           gsap.to(body, {
             height: 0,
             duration: 0.4,
@@ -467,16 +502,16 @@
   // ============================================
   // RANGE SLIDER ENHANCEMENTS
   // ============================================
-  function initRangeSliders() {
+  function initRangeSliders(): void {
     const sliders = [
       { input: 'enterThreshold', fill: 'enterThresholdFill', tooltip: 'enterThresholdTooltip' },
       { input: 'exitThreshold', fill: 'exitThresholdFill', tooltip: 'exitThresholdTooltip' },
     ];
     
     sliders.forEach(({ input, fill, tooltip }) => {
-      const inputEl = document.getElementById(input);
-      const fillEl = document.getElementById(fill);
-      const tooltipEl = document.getElementById(tooltip);
+      const inputEl = document.getElementById(input) as HTMLInputElement;
+      const fillEl = document.getElementById(fill) as HTMLElement;
+      const tooltipEl = document.getElementById(tooltip) as HTMLElement;
       
       if (!inputEl || !fillEl || !tooltipEl) return;
       
@@ -493,7 +528,6 @@
       
       inputEl.addEventListener('input', updateSlider);
       
-      // Initial update
       setTimeout(updateSlider, 100);
     });
   }
@@ -501,15 +535,14 @@
   // ============================================
   // TOAST WITH ANIMATIONS
   // ============================================
-  function showToast(message, kind = 'info', ttlMs = 4000) {
-    if (!toastsEl) return;
+  function showToast(message: string, kind: string = 'info', ttlMs: number = 4000): void {
+    if (!dom.toastsEl) return;
     
     const el = document.createElement('div');
     el.className = `toast toast--${kind}`;
     el.textContent = String(message);
-    toastsEl.appendChild(el);
+    dom.toastsEl.appendChild(el);
     
-    // Trigger animation
     requestAnimationFrame(() => {
       el.classList.add('show');
     });
@@ -518,7 +551,7 @@
       el.classList.remove('show');
       el.classList.add('hide');
       setTimeout(() => {
-        if (el.parentNode) el.parentNode.removeChild(el);
+        if (el.parentNode) el.parentNode!.removeChild(el);
       }, 300);
     };
     
@@ -533,30 +566,28 @@
   // ============================================
   // BANNER STATE ANIMATION
   // ============================================
-  function setBanner(isPerformative) {
+  function setBanner(isPerformative: boolean): void {
     const performative = Boolean(isPerformative);
-    const wasPerformative = banner.classList.contains('banner--performative');
+    const wasPerformative = dom.banner.classList.contains('banner--performative');
     
-    banner.classList.toggle('banner--performative', performative);
-    banner.classList.toggle('banner--nonperformative', !performative);
-    bannerText.textContent = performative ? 'Performative' : 'Non‑performative';
+    dom.banner.classList.toggle('banner--performative', performative);
+    dom.banner.classList.toggle('banner--nonperformative', !performative);
+    dom.bannerText.textContent = performative ? 'Performative' : 'Non‑performative';
     
-    // Update status text
-    const statusText = bannerStatus.querySelector('.status-text');
+    const statusText = dom.bannerStatus.querySelector('.status-text') as HTMLElement;
     if (statusText) {
       statusText.textContent = performative ? 'Detected' : 'Scanning';
     }
     
-    // Animate banner text on state change
     if (wasPerformative !== performative) {
       if (isGsapAvailable()) {
-        gsap.fromTo(bannerText, 
+        const gsap = (globalThis as any).gsap;
+        gsap.fromTo(dom.bannerText, 
           { scale: 0.9, opacity: 0.5 },
           { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(2)' }
         );
       }
       
-      // Trigger particle effect
       triggerDetectionEffect();
     }
   }
@@ -564,42 +595,44 @@
   // ============================================
   // DETECTION HELPERS
   // ============================================
-  function isDrinkPrediction(pred) {
+  function isDrinkPrediction(pred: Prediction): boolean {
     const label = (pred.class || pred.label || '').toLowerCase();
     if (DRINK_CLASSES.has(label)) return true;
     return DRINK_KEYWORDS.some(k => label.includes(k));
   }
 
-  function isBookPrediction(pred) {
+  function isBookPrediction(pred: Prediction): boolean {
     const label = (pred.class || pred.label || '').toLowerCase();
     return BOOK_CLASSES.has(label);
   }
 
-  function isTinPrediction(pred) {
+  function isTinPrediction(pred: Prediction): boolean {
     const label = (pred.class || pred.label || '').toLowerCase();
     return TIN_KEYWORDS.some(k => label.includes(k));
   }
 
-  function isPerformativePrediction(pred) {
+  function isPerformativePrediction(pred: Prediction): boolean {
     return isDrinkPrediction(pred) || isBookPrediction(pred) || isTinPrediction(pred);
   }
 
   // ============================================
   // CANVAS & DETECTION
   // ============================================
-  function sizeCanvasToVideo() {
-    const rect = video.getBoundingClientRect();
-    overlay.width = rect.width * DPR;
-    overlay.height = rect.height * DPR;
+  function sizeCanvasToVideo(): void {
+    const rect = dom.video.getBoundingClientRect();
+    dom.overlay.width = rect.width * DPR;
+    dom.overlay.height = rect.height * DPR;
   }
 
-  function drawDetections(predictions) {
-    const ctx = overlay.getContext('2d');
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
+  function drawDetections(predictions: Prediction[]): void {
+    const ctx = dom.overlay.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.clearRect(0, 0, dom.overlay.width, dom.overlay.height);
     if (!predictions || !predictions.length) return;
 
-    const scaleX = overlay.width / video.videoWidth;
-    const scaleY = overlay.height / video.videoHeight;
+    const scaleX = dom.overlay.width / dom.video.videoWidth;
+    const scaleY = dom.overlay.height / dom.video.videoHeight;
 
     for (const p of predictions) {
       const [x, y, w, h] = p.bbox || p.boundingBox || [];
@@ -610,7 +643,6 @@
       const sw = w * scaleX;
       const sh = h * scaleY;
 
-      // Animated box with glow
       ctx.save();
       ctx.strokeStyle = '#ffcc00';
       ctx.lineWidth = 2 * DPR;
@@ -619,25 +651,25 @@
       ctx.strokeRect(sx, sy, sw, sh);
       ctx.restore();
 
-      // Label with modern styling
       const label = `${p.class || p.label} ${(p.score ? Math.round(p.score * 100) : 0)}%`;
       ctx.save();
       ctx.font = `${11 * DPR}px 'Space Grotesk', system-ui, sans-serif`;
       const tw = ctx.measureText(label).width + 12 * DPR;
       const th = 20 * DPR;
       
-      // Label background
       ctx.fillStyle = 'rgba(5, 5, 8, 0.85)';
       ctx.beginPath();
-      ctx.roundRect(sx, Math.max(0, sy - th - 6 * DPR), tw, th, 6 * DPR);
+      if (ctx.roundRect) {
+        ctx.roundRect(sx, Math.max(0, sy - th - 6 * DPR), tw, th, 6 * DPR);
+      } else {
+        ctx.fillRect(sx, Math.max(0, sy - th - 6 * DPR), tw, th);
+      }
       ctx.fill();
       
-      // Label border
       ctx.strokeStyle = 'rgba(255, 204, 0, 0.4)';
       ctx.lineWidth = 1;
       ctx.stroke();
       
-      // Label text
       ctx.fillStyle = '#f0f0f5';
       ctx.fillText(label, sx + 6 * DPR, Math.max(14 * DPR, sy - 10 * DPR));
       ctx.restore();
@@ -647,7 +679,7 @@
   // ============================================
   // SETTINGS PERSISTENCE
   // ============================================
-  function loadSettings() {
+  function loadSettings(): void {
     try {
       const raw = localStorage.getItem('performative-settings');
       if (!raw) return;
@@ -661,7 +693,7 @@
     } catch (_) {}
   }
 
-  function saveSettings() {
+  function saveSettings(): void {
     try { 
       localStorage.setItem('performative-settings', JSON.stringify(settings)); 
     } catch (_) {}
@@ -670,14 +702,14 @@
   // ============================================
   // DETECTION LOOP
   // ============================================
-  async function detectLoop() {
-    if (!model || video.readyState < 2) {
+  async function detectLoop(): Promise<void> {
+    if (!model || dom.video.readyState < 2) {
       rafId = requestAnimationFrame(detectLoop);
       return;
     }
     
     try {
-      const predictions = await model.detect(video);
+      const predictions = await model.detect(dom.video) as Prediction[];
       const baseThreshold = isPerformativeState ? settings.exitScore : settings.enterScore;
       
       const filtered = predictions.filter(p => {
@@ -692,8 +724,10 @@
       if (showBoxes) {
         drawDetections(filtered);
       } else {
-        const ctx = overlay.getContext('2d');
-        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        const ctx = dom.overlay.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, dom.overlay.width, dom.overlay.height);
+        }
       }
 
       const hasPerformativeThisFrame = filtered.length > 0;
@@ -723,8 +757,8 @@
   // ============================================
   // CAMERA CONTROLS
   // ============================================
-  async function startCamera() {
-    startBtn.disabled = true;
+  async function startCamera(): Promise<void> {
+    dom.startBtn.disabled = true;
     
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -738,31 +772,30 @@
     } catch (err) {
       console.error('getUserMedia error:', err);
       showToast('Could not access camera. Please allow permissions.', 'error');
-      startBtn.disabled = false;
+      dom.startBtn.disabled = false;
       return;
     }
 
     try {
-      video.srcObject = stream;
-      await video.play();
+      dom.video.srcObject = stream;
+      await dom.video.play();
       sizeCanvasToVideo();
       
       const isFront = currentFacingMode === 'user';
-      video.classList.toggle('mirrored', isFront);
-      overlay.classList.toggle('mirrored', isFront);
+      dom.video.classList.toggle('mirrored', isFront);
+      dom.overlay.classList.toggle('mirrored', isFront);
       
-      // Trigger camera start animation
       animateCameraStart();
     } catch (err) {
       console.error('Video playback error:', err);
     }
 
-    // Load model with loading modal
     if (!model) {
       showLoadingModal('Loading Model', 'Initializing TensorFlow.js...');
       updateLoadingProgress(10);
       
       try {
+        const tf = (globalThis as any).tf;
         if (typeof tf !== 'undefined' && tf.getBackend() !== 'webgl') {
           await tf.setBackend('webgl');
         }
@@ -777,34 +810,32 @@
         showToast('Running without WebGL acceleration', 'info');
       }
       
-      // Update modal text for model loading
       if (loadingModal) {
-        const subtitleEl = loadingModal.querySelector('.loading-modal__subtitle');
+        const subtitleEl = loadingModal.querySelector('.loading-modal__subtitle') as HTMLElement;
         if (subtitleEl) subtitleEl.textContent = 'Downloading detection model...';
       }
       updateLoadingProgress(50);
       
       try {
+        const cocoSsd = (globalThis as any).cocoSsd;
         model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
         updateLoadingProgress(90);
       } catch (e) {
         console.error('Model load failed:', e);
         hideLoadingModal();
-        bannerText.textContent = 'Model unavailable';
-        showToast(`Object detection unavailable: ${e?.message || 'see console'}`, 'error');
+        dom.bannerText.textContent = 'Model unavailable';
+        showToast(`Object detection unavailable: ${(e as Error)?.message || 'see console'}`, 'error');
       }
       
       if (model) {
-        // Update modal for warmup
         if (loadingModal) {
-          const subtitleEl = loadingModal.querySelector('.loading-modal__subtitle');
+          const subtitleEl = loadingModal.querySelector('.loading-modal__subtitle') as HTMLElement;
           if (subtitleEl) subtitleEl.textContent = 'Warming up model...';
         }
-        try { await model.detect(video); } catch (_) {}
+        try { await model.detect(dom.video); } catch (_) {}
         updateLoadingProgress(100);
       }
       
-      // Hide modal after short delay for smooth UX
       setTimeout(() => {
         hideLoadingModal();
       }, 300);
@@ -816,10 +847,10 @@
     setBanner(false);
     
     if (model) detectLoop();
-    stopBtn.disabled = false;
+    dom.stopBtn.disabled = false;
   }
 
-  function stopCamera() {
+  function stopCamera(): void {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
     
@@ -828,32 +859,34 @@
       stream = null;
     }
     
-    video.srcObject = null;
-    const ctx = overlay.getContext('2d');
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    dom.video.srcObject = null;
+    const ctx = dom.overlay.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, dom.overlay.width, dom.overlay.height);
+    }
     
     setBanner(false);
     animateCameraStop();
     
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
+    dom.startBtn.disabled = false;
+    dom.stopBtn.disabled = true;
   }
 
   // ============================================
   // SETTINGS UI
   // ============================================
-  function initSettingsUI() {
+  function initSettingsUI(): void {
     loadSettings();
     
-    const enterEl = document.getElementById('enterThreshold');
-    const exitEl = document.getElementById('exitThreshold');
-    const enterVal = document.getElementById('enterThresholdValue');
-    const exitVal = document.getElementById('exitThresholdValue');
-    const framesEnterEl = document.getElementById('framesEnter');
-    const framesExitEl = document.getElementById('framesExit');
-    const resetBtn = document.getElementById('resetSettings');
+    const enterEl = document.getElementById('enterThreshold') as HTMLInputElement;
+    const exitEl = document.getElementById('exitThreshold') as HTMLInputElement;
+    const enterVal = document.getElementById('enterThresholdValue') as HTMLElement;
+    const exitVal = document.getElementById('exitThresholdValue') as HTMLElement;
+    const framesEnterEl = document.getElementById('framesEnter') as HTMLInputElement;
+    const framesExitEl = document.getElementById('framesExit') as HTMLInputElement;
+    const resetBtn = document.getElementById('resetSettings') as HTMLButtonElement;
 
-    function syncUI() {
+    function syncUI(): void {
       enterEl.value = String(settings.enterScore);
       exitEl.value = String(settings.exitScore);
       enterVal.textContent = Number(settings.enterScore).toFixed(2);
@@ -861,9 +894,8 @@
       framesEnterEl.value = String(settings.framesEnter);
       framesExitEl.value = String(settings.framesExit);
       
-      // Update range fills
-      const updateFill = (input, fillId) => {
-        const fill = document.getElementById(fillId);
+      const updateFill = (input: HTMLInputElement, fillId: string) => {
+        const fill = document.getElementById(fillId) as HTMLElement;
         if (!fill) return;
         const min = parseFloat(input.min);
         const max = parseFloat(input.max);
@@ -876,7 +908,7 @@
       updateFill(exitEl, 'exitThresholdFill');
     }
 
-    function clamp(v, min, max) { 
+    function clamp(v: number, min: number, max: number): number { 
       return Math.min(max, Math.max(min, v)); 
     }
 
@@ -923,8 +955,8 @@
       consecutiveDrinkFrames = 0;
       consecutiveNoDrinkFrames = 0;
       
-      // Animate reset button
       if (isGsapAvailable()) {
+        const gsap = (globalThis as any).gsap;
         gsap.to(resetBtn, {
           scale: 0.95,
           duration: 0.1,
@@ -943,21 +975,22 @@
   // ============================================
   // TOGGLE BOXES BUTTON
   // ============================================
-  function initToggleBoxes() {
-    if (!toggleBoxesBtn) return;
+  function initToggleBoxes(): void {
+    if (!dom.toggleBoxesBtn) return;
     
-    toggleBoxesBtn.addEventListener('click', () => {
+    dom.toggleBoxesBtn.addEventListener('click', () => {
       showBoxes = !showBoxes;
-      toggleBoxesBtn.querySelector('.btn__text').textContent = `Boxes: ${showBoxes ? 'On' : 'Off'}`;
+      const btnText = dom.toggleBoxesBtn.querySelector('.btn__text') as HTMLElement;
+      btnText.textContent = `Boxes: ${showBoxes ? 'On' : 'Off'}`;
       
-      // Spring animation on toggle
       if (isGsapAvailable()) {
-        gsap.to(toggleBoxesBtn, {
+        const gsap = (globalThis as any).gsap;
+        gsap.to(dom.toggleBoxesBtn, {
           scale: 1.1,
           duration: 0.15,
           ease: 'power2.out',
           onComplete: () => {
-            gsap.to(toggleBoxesBtn, {
+            gsap.to(dom.toggleBoxesBtn, {
               scale: 1,
               duration: 0.4,
               ease: 'elastic.out(1, 0.5)',
@@ -967,8 +1000,10 @@
       }
       
       if (!showBoxes) {
-        const ctx = overlay.getContext('2d');
-        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        const ctx = dom.overlay.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, dom.overlay.width, dom.overlay.height);
+        }
       }
     });
   }
@@ -976,22 +1011,20 @@
   // ============================================
   // INITIALIZATION
   // ============================================
-  function init() {
-    // Initialize all animation systems
+  function init(): void {
     initPageAnimations();
     initButtonEffects();
     initAccordion();
     initRangeSliders();
-  initSettingsUI();
+    initSettingsUI();
     initToggleBoxes();
 
-    // Core event listeners
     window.addEventListener('resize', sizeCanvasToVideo);
-    startBtn.addEventListener('click', startCamera);
-    stopBtn.addEventListener('click', stopCamera);
+    dom.startBtn.addEventListener('click', () => startCamera());
+    dom.stopBtn.addEventListener('click', stopCamera);
     
-    if (switchCameraBtn) {
-      switchCameraBtn.addEventListener('click', async () => {
+    if (dom.switchCameraBtn) {
+      dom.switchCameraBtn.addEventListener('click', async () => {
         currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
         
         if (stream) {
@@ -1003,18 +1036,16 @@
       });
     }
 
-    // Pause detection when tab hidden
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
         if (rafId) cancelAnimationFrame(rafId);
         rafId = null;
-    } else if (model && video.readyState >= 2) {
-      rafId = requestAnimationFrame(detectLoop);
-    }
-  });
+      } else if (model && dom.video.readyState >= 2) {
+        rafId = requestAnimationFrame(detectLoop);
+      }
+    });
   }
 
-  // Wait for DOM and GSAP to be ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
