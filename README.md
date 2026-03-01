@@ -35,6 +35,8 @@ Create a `vercel.json` in the project root to add the necessary security headers
 
 ```json
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "headers": [
     {
