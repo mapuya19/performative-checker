@@ -1,25 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
+    "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "useDefineForClassFields": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": false,
-    "declarationMap": false,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./",
-    "removeComments": false,
-    "noEmit": false,
     "isolatedModules": true,
-    "allowJs": true,
-    "checkJs": false,
+    "noEmit": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
@@ -30,14 +23,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "types": ["node"]
+    "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["app.ts"],
+  "exclude": ["node_modules", "dist"]
 }

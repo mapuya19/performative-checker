@@ -4,17 +4,22 @@
   "private": true,
   "description": "Webcam-based performative checker using TF.js COCO-SSD",
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
-    "start": "tsc && node dist/server.js",
-    "start:port": "PORT=8081 node dist/server.js",
-    "dev": "tsc && tsc --watch & node dist/server.js"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
-    "@types/node": "^25.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0"
+  },
+  "dependencies": {
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
+    "gsap": "^3.14.2"
   }
 }
